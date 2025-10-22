@@ -1,5 +1,4 @@
 import { HttpTypes } from "@medusajs/types"
-import { notFound } from "next/navigation"
 import { NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
@@ -18,39 +17,50 @@ async function getRegionMap() {
     !regionMap.keys().next().value ||
     regionMapUpdated < Date.now() - 3600 * 1000
   ) {
-    // Fetch regions from Medusa. We can't use the JS client here because middleware is running on Edge and the client needs a Node environment.
-    const { regions } = await fetch(`${BACKEND_URL}/store/regions`, {
-      headers: {
-        "x-publishable-api-key": PUBLISHABLE_API_KEY!,
-      },
-      next: {
-        revalidate: 3600,
-        tags: ["regions"],
-      },
-    }).then((res) => res.json())
-
-    if (!regions?.length) {
-      notFound()
-    }
-
-    // Create a map of country codes to regions.
-    regions.forEach((region: HttpTypes.StoreRegion) => {
-      region.countries?.forEach((c) => {
-        regionMapCache.regionMap.set(c.iso_2 ?? "", region)
+    try {
+      // Fetch regions from Medusa
+      const response = await fetch(`${BACKEND_URL}/store/regions`, {
+        headers: {
+          "x-publishable-api-key": PUBLISHABLE_API_KEY!,
+        },
+        next: {
+          revalidate: 3600,
+          tags: ["regions"],
+        },
       })
-    })
 
-    regionMapCache.regionMapUpdated = Date.now()
+      if (!response.ok) {
+        console.error(`Failed to fetch regions: ${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const { regions } = await response.json()
+
+      if (!regions?.length) {
+        console.error("No regions found in Medusa backend. Please create regions in your Medusa admin.")
+        return null
+      }
+
+      // Clear existing map
+      regionMapCache.regionMap.clear()
+
+      // Create a map of country codes to regions
+      regions.forEach((region: HttpTypes.StoreRegion) => {
+        region.countries?.forEach((c) => {
+          regionMapCache.regionMap.set(c.iso_2 ?? "", region)
+        })
+      })
+
+      regionMapCache.regionMapUpdated = Date.now()
+    } catch (error) {
+      console.error("Error fetching regions from Medusa:", error)
+      return null
+    }
   }
 
-  return regionMapCache.regionMap
+  return regionMapCache.regionMap.size > 0 ? regionMapCache.regionMap : null
 }
 
-/**
- * Fetches regions from Medusa and sets the region cookie.
- * @param request
- * @param response
- */
 async function getCountryCode(
   request: NextRequest,
   regionMap: Map<string, HttpTypes.StoreRegion | number>
@@ -97,7 +107,20 @@ export async function middleware(request: NextRequest) {
 
   const regionMap = await getRegionMap()
 
-  const countryCode = regionMap && (await getCountryCode(request, regionMap))
+  // If regionMap is null, there was an error fetching regions
+  // Continue without redirecting to avoid blocking the entire site
+  if (!regionMap || regionMap.size === 0) {
+    console.error(
+      "Unable to load regions. Please check:\n" +
+      "1. NEXT_PUBLIC_MEDUSA_BACKEND_URL is set correctly\n" +
+      "2. NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is set correctly\n" +
+      "3. Medusa backend is running\n" +
+      "4. Regions are created in Medusa admin"
+    )
+    return NextResponse.next()
+  }
+
+  const countryCode = await getCountryCode(request, regionMap)
 
   const urlHasCountryCode =
     countryCode && request.nextUrl.pathname.split("/")[1].includes(countryCode)
@@ -142,5 +165,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|favicon.ico|.*\\.png|.*\\.jpg|.*\\.gif|.*\\.svg).*)"], // prevents redirecting on static files
+  matcher: ["/((?!api|_next/static|favicon.ico|.*\\.png|.*\\.jpg|.*\\.gif|.*\\.svg).*)"],
 }
