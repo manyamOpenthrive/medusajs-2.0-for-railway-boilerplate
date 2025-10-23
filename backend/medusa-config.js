@@ -41,9 +41,21 @@ const medusaConfig = {
     },
     build: {
       rollupOptions: {
-        external: ["@medusajs/dashboard",
+        external: [
+          "@medusajs/dashboard",
           "@medusajs/icons",
-          "@medusajs/ui"]
+          "@medusajs/ui"
+        ],
+        onwarn(warning, warn) {
+          // Suppress "unresolved external" warnings for Medusa packages
+          if (
+            warning.code === 'UNRESOLVED_IMPORT' &&
+            warning.id?.includes('@medusajs/')
+          ) {
+            return;
+          }
+          warn(warning);
+        }
       }
     }
   },
