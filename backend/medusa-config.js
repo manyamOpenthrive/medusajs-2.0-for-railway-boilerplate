@@ -75,6 +75,19 @@ const medusaConfig = {
         ]
       }
     },
+    {
+      resolve: "./src/modules/sanity",
+      options: {
+        api_token: process.env.SANITY_API_TOKEN,
+        project_id: process.env.SANITY_PROJECT_ID,
+        api_version: new Date().toISOString().split("T")[0],
+        dataset: "production",
+        studio_url: process.env.SANITY_STUDIO_URL || "http://localhost:3000/studio",
+        type_map: {
+          product: "product",
+        },
+      },
+    },
     ...(REDIS_URL ? [{
       key: Modules.EVENT_BUS,
       resolve: '@medusajs/event-bus-redis',
