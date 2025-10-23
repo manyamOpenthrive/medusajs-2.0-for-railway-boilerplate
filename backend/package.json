@@ -46,6 +46,7 @@
   "devDependencies": {
     "@medusajs/dashboard": "^2.11.0",
     "@medusajs/icons": "^2.11.0",
+    "@medusajs/js-sdk": "^2.11.0",
     "@medusajs/test-utils": "2.10.2",
     "@medusajs/ui": "^4.0.24",
     "@mikro-orm/cli": "6.4.3",

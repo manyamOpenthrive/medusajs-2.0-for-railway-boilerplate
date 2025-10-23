@@ -45,6 +45,7 @@ const medusaConfig = {
           "@medusajs/dashboard",
           "@medusajs/icons",
           "@medusajs/ui",
+          "@medusajs/js-sdk",
           "@tanstack/react-query",
           "react",
           "react-dom"
