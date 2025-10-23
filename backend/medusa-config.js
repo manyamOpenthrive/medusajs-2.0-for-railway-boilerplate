@@ -44,7 +44,10 @@ const medusaConfig = {
         external: [
           "@medusajs/dashboard",
           "@medusajs/icons",
-          "@medusajs/ui"
+          "@medusajs/ui",
+          "@tanstack/react-query",
+          "react",
+          "react-dom"
         ],
         onwarn(warning, warn) {
           // Suppress "unresolved external" warnings for Medusa packages
