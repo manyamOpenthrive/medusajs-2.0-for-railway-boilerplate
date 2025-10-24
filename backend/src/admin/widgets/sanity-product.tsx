@@ -3,12 +3,16 @@ import { AdminProduct, DetailWidgetProps } from "@medusajs/types"
 import { ArrowUpRightOnBox } from "@medusajs/icons";
 import { Button, CodeBlock, Container, StatusBadge, toast } from "@medusajs/ui";
 import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
     useSanityDocument,
     useTriggerSanityProductSync,
 } from "../hooks/sanity";
 
-const ProductWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
+// Create a client outside the component to avoid recreating it on every render
+const queryClient = new QueryClient();
+
+const ProductWidgetContent = ({ data }: DetailWidgetProps<AdminProduct>) => {
     const { mutateAsync, isPending } = useTriggerSanityProductSync(data.id);
     const { sanity_document, studio_url, isLoading } = useSanityDocument(data.id);
     const [showCodeBlock, setShowCodeBlock] = useState(false);
@@ -80,6 +84,15 @@ const ProductWidget = ({ data }: DetailWidgetProps<AdminProduct>) => {
                 )}
             </div>
         </Container>
+    );
+};
+
+// Wrap the content component with QueryClientProvider
+const ProductWidget = (props: DetailWidgetProps<AdminProduct>) => {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <ProductWidgetContent {...props} />
+        </QueryClientProvider>
     );
 };
 
