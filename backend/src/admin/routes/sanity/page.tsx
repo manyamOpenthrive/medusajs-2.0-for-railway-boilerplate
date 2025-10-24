@@ -9,9 +9,20 @@ import {
     Toaster,
     toast,
 } from "@medusajs/ui";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSanitySyncs, useTriggerSanitySync } from "../../hooks/sanity";
 
-const SanityRoute = () => {
+// Create a QueryClient instance
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+        },
+    },
+});
+
+const SanityRouteContent = () => {
     const { mutateAsync, isPending } = useTriggerSanitySync();
     const { workflow_executions, refetch } = useSanitySyncs();
 
@@ -21,8 +32,7 @@ const SanityRoute = () => {
             toast.success(`Sync triggered.`);
             refetch();
         } catch (err) {
-            toast.error(`Couldn't trigger sync: ${(err as Record<string, unknown>).message
-                }`);
+            toast.error(`Couldn't trigger sync: ${(err as Record<string, unknown>).message}`);
         }
     };
 
@@ -93,6 +103,14 @@ const SanityRoute = () => {
             </Container>
             <Toaster />
         </>
+    );
+};
+
+const SanityRoute = () => {
+    return (
+        <QueryClientProvider client={queryClient}>
+            <SanityRouteContent />
+        </QueryClientProvider>
     );
 };
 
